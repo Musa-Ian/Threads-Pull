@@ -93,7 +93,7 @@ function normalizeThreadsUrl(url) {
     const parsedUrl = new URL(url);
     
     // Check if it's a valid Threads domain
-    if (!['threads.net', 'www.threads.net'].includes(parsedUrl.hostname)) {
+    if (!['threads.net', 'www.threads.net', 'threads.com', 'www.threads.com'].includes(parsedUrl.hostname)) {
       return null;
     }
     

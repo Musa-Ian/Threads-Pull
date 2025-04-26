@@ -58,9 +58,9 @@ Content-Type: application/json
 
 ThreadsPull intelligently handles various Threads URL formats:
 
-- **Main Posts:** `https://www.threads.net/@username/post/123456789`
-- **Replies:** `https://www.threads.net/@username/post/123456789/reply/987654321`
-- **Comments:** `https://www.threads.net/@username/post/123456789/comment/987654321`
+- **Main Posts:** `https://www.threads.net/@username/post/123456789` or `https://www.threads.com/@username/post/123456789`
+- **Replies:** `https://www.threads.net/@username/post/123456789/reply/987654321` or `https://www.threads.com/@username/post/123456789/reply/987654321`
+- **Comments:** `https://www.threads.net/@username/post/123456789/comment/987654321` or `https://www.threads.com/@username/post/123456789/comment/987654321`
 
 The API automatically extracts media from the parent post when you provide a reply or comment URL.
 
@@ -150,24 +150,73 @@ The API returns appropriate error responses for various scenarios:
 
 ThreadsPull is designed to work seamlessly with iOS Shortcuts. Here's how to create a simple shortcut for downloading media from Threads:
 
+### Basic Shortcut for iOS 18
+
 1. Create a new Shortcut in the Shortcuts app
-2. Add a "URL" action with your deployed ThreadsPull API endpoint
+2. Add a "URL" action with your deployed ThreadsPull API endpoint (e.g., `https://your-threadspull-api.vercel.app/api/extract`)
 3. Add a "Get Contents of URL" action with the following settings:
    - Method: POST
+   - Headers: Add a new header with key `Content-Type` and value `application/json`
    - Request Body: JSON
-   - URL: The URL from the first action
-   - JSON Body: `{"url": "Shortcut Input"}`
-4. Add a "Get Dictionary Value" action to extract the media URLs
-5. Add a "Download File" or "Quick Look" action to save or preview the media
+   - JSON Key-Value: Key: `url`, Value: `Shortcut Input`
+4. Add a "Get Dictionary Value" action to extract the media URLs from the response:
+   - Dictionary: Output from previous action
+   - Key Path: `data.media.images` or `data.media.videos` (depending on what you want to extract)
+5. Add a "Repeat with Each" action to process each media URL
+6. Within the Repeat loop, add a "Download File" action and set the destination to "Save to Photos"
 
-### Example Shortcut Steps:
+### Advanced Shortcut for iOS 18
 
-1. Accept Threads URL as input
-2. Send URL to ThreadsPull API
-3. Parse JSON response
-4. For each media URL:
-   - Download the file
-   - Save to Photos or Files
+For a more robust experience, you can create an advanced shortcut that:
+
+1. Accepts a Threads URL from the share sheet
+2. Verifies the URL is from Threads
+3. Shows a loading indicator while processing
+4. Handles both image and video media types
+5. Provides error handling with friendly messages
+6. Offers options to save to Photos or Files
+
+Here's a complete shortcut structure:
+
+1. Accept Input (URL from share sheet)
+2. If (Input contains "threads.net")
+   - Show Notification "Processing Threads post..."
+   - URL (your API endpoint)
+   - Get Contents of URL
+     - Method: POST
+     - Headers: Content-Type: application/json
+     - Request Body: JSON with {"url": Shortcut Input}
+   - Parse JSON from result
+   - Get Dictionary Value (data.media)
+   - If (Result has any value)
+     - Get Dictionary Value (images)
+     - Get Dictionary Value (videos)
+     - If (images count > 0 AND videos count > 0)
+       - Choose from Menu: "Download Images" or "Download Videos"
+       - Based on choice, process appropriate media type
+     - Else
+       - Process whichever media type exists
+     - Show Success Notification
+   - Else
+     - Show Error "No media found in this post"
+3. Else
+   - Show Error "Not a valid Threads URL"
+
+### Sample Shortcut Template
+
+```json
+{
+  "input": "{{Shortcut Input}}",
+  "url": "https://your-threadspull-api.vercel.app/api/extract",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "url": "{{Shortcut Input}}"
+  }
+}
+```
 
 ## Local Development
 
