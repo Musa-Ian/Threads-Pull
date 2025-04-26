@@ -59,7 +59,7 @@ exports.extractMedia = async (req, res) => {
   } catch (error) {
     console.error(`Error extracting media: ${error.message}`);
     
-    if (error.message === 'Failed to fetch thread' || error.message === 'Thread not found') {
+    if (error.message === 'Failed to fetch thread' || error.message === 'Thread not found' || error.message === 'Thread not found or page error') {
       return res.status(404).json({
         status: 404,
         error: 'Not Found',
@@ -92,27 +92,44 @@ function normalizeThreadsUrl(url) {
   try {
     const parsedUrl = new URL(url);
     
-    // Check if it's a valid Threads domain
-    if (!['threads.net', 'www.threads.net', 'threads.com', 'www.threads.com'].includes(parsedUrl.hostname)) {
-      return null;
+    // Check if it's a valid Threads domain (only threads.com now)
+    if (!['threads.com', 'www.threads.com'].includes(parsedUrl.hostname)) {
+      // If it's threads.net, convert to threads.com
+      if (['threads.net', 'www.threads.net'].includes(parsedUrl.hostname)) {
+        url = url.replace('threads.net', 'threads.com');
+        // Create a new URL object with the updated URL
+        parsedUrl = new URL(url);
+      } else {
+        return null;
+      }
     }
+    
+    // Remove any query parameters as they may interfere with parsing
+    const urlWithoutParams = `${parsedUrl.origin}${parsedUrl.pathname}`;
     
     // Split the pathname into parts
     const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
     
     // Handle different URL formats
     
-    // 1. Main post: https://www.threads.net/@username/post/123456789
-    // 2. Reply: https://www.threads.net/@username/post/123456789/reply/123456789
-    // 3. Comment: https://www.threads.net/@username/post/123456789/comment/123456789
-    // 4. Intent URL: https://www.threads.net/intent/post?text=...
+    // 1. Main post: https://www.threads.com/@username/post/123456789
+    // 2. Reply: https://www.threads.com/@username/post/123456789/reply/123456789
+    // 3. Comment: https://www.threads.com/@username/post/123456789/comment/123456789
+    // 4. Intent URL: https://www.threads.com/intent/post?text=...
+    // 5. Short URL format: https://www.threads.com/t/123456789
     
     // Handle intent URLs separately (we don't process these for extraction)
     if (pathParts[0] === 'intent') {
       return null;
     }
     
-    // Check if the URL has the minimum required parts
+    // Handle short URL format (t/CODE)
+    if (pathParts[0] === 't' && pathParts.length > 1) {
+      // For short URLs, we keep them as is but ensure they use threads.com
+      return `https://www.threads.com/t/${pathParts[1]}`;
+    }
+    
+    // Check if the URL has the minimum required parts for standard format
     if (pathParts.length < 3) {
       return null;
     }
@@ -136,12 +153,13 @@ function normalizeThreadsUrl(url) {
     // as that's where the media will be
     if (pathParts.length > 3 && ['reply', 'comment'].includes(pathParts[3])) {
       // Main post contains the media, so we get that URL
-      return `https://www.threads.net/${username}/post/${postId}`;
+      return `https://www.threads.com/${username}/post/${postId}`;
     }
     
-    // Standard post URL
-    return `https://www.threads.net/${username}/post/${postId}`;
+    // Standard post URL (always normalize to threads.com domain)
+    return `https://www.threads.com/${username}/post/${postId}`;
   } catch (error) {
+    console.error('URL normalization error:', error.message);
     return null;
   }
 }
