@@ -1,0 +1,11 @@
+# Server configuration
+PORT=3000
+NODE_ENV=development
+
+# Rate limiting
+RATE_LIMIT_WINDOW_MS=900000  # 15 minutes in milliseconds
+RATE_LIMIT_MAX=100           # Maximum number of requests per window
+
+# Cache configuration
+CACHE_TTL=3600               # Cache time-to-live in seconds
+CACHE_CHECK_PERIOD=600       # Cache check period in seconds 
