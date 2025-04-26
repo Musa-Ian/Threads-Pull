@@ -10,6 +10,8 @@ ThreadsPull is a simple API service for extracting media (images and videos) fro
 - 💾 Caching for improved performance and reduced load on Threads
 - 🛡️ Comprehensive error handling and rate limiting
 - 📄 Full documentation for API usage and deployment
+- 🚀 Ready for serverless deployment on Vercel
+- 🧩 Supports all Threads URL formats (posts, replies, comments)
 
 ## API Usage
 
@@ -51,6 +53,16 @@ Content-Type: application/json
   "url": "https://www.threads.net/@username/post/123456789"
 }
 ```
+
+### Supported Threads URL Formats
+
+ThreadsPull intelligently handles various Threads URL formats:
+
+- **Main Posts:** `https://www.threads.net/@username/post/123456789`
+- **Replies:** `https://www.threads.net/@username/post/123456789/reply/987654321`
+- **Comments:** `https://www.threads.net/@username/post/123456789/comment/987654321`
+
+The API automatically extracts media from the parent post when you provide a reply or comment URL.
 
 ### Response Format
 
@@ -177,9 +189,9 @@ ThreadsPull is designed to work seamlessly with iOS Shortcuts. Here's how to cre
    npm install
    ```
 
-3. Create a `.env` file based on the provided `.env.sample`:
+3. Create a `.env` file based on the provided `env-example`:
    ```bash
-   cp .env.sample .env
+   cp env-example .env
    ```
 
 4. Start the development server:
@@ -193,12 +205,26 @@ The server will start on http://localhost:3000 by default.
 
 ThreadsPull can be easily deployed to various platforms:
 
-### Vercel
+### Vercel (Recommended)
+
+The project is configured for optimal deployment on Vercel with serverless functions:
 
 1. Fork this repository to your GitHub account
 2. Create a new project in Vercel and link it to your repository
-3. Configure environment variables in the Vercel dashboard
-4. Deploy
+3. Configure environment variables in the Vercel dashboard:
+   - `NODE_ENV` = `production`
+   - `PORT` = `3000` (optional, as Vercel handles ports automatically)
+   - `RATE_LIMIT_WINDOW_MS` = `900000`
+   - `RATE_LIMIT_MAX` = `100`
+   - `CACHE_TTL` = `3600`
+   - `CACHE_CHECK_PERIOD` = `600`
+4. Deploy your project
+5. Your API will be available at `https://your-project.vercel.app`
+
+The included `vercel.json` file configures:
+- Functions with 1GB memory allocation
+- 60-second max duration for web scraping operations
+- Proper routing for the API endpoints
 
 ### Railway
 

@@ -22,8 +22,10 @@ exports.extractMedia = async (req, res) => {
       });
     }
 
-    // Validate URL format
-    if (!isValidThreadsUrl(url)) {
+    // Validate URL format and normalize it
+    const normalizedUrl = normalizeThreadsUrl(url);
+    
+    if (!normalizedUrl) {
       return res.status(400).json({
         status: 400,
         error: 'Bad Request',
@@ -31,8 +33,8 @@ exports.extractMedia = async (req, res) => {
       });
     }
 
-    // Check cache first
-    const cacheKey = `thread:${url}`;
+    // Check cache first (using normalized URL as key)
+    const cacheKey = `thread:${normalizedUrl}`;
     const cachedResult = cache.get(cacheKey);
     
     if (cachedResult) {
@@ -44,7 +46,7 @@ exports.extractMedia = async (req, res) => {
     }
 
     // If not in cache, extract media
-    const media = await extractMediaFromThread(url);
+    const media = await extractMediaFromThread(normalizedUrl);
     
     // Cache the result
     cache.set(cacheKey, media);
@@ -82,18 +84,73 @@ exports.extractMedia = async (req, res) => {
 };
 
 /**
+ * Normalize various Threads URL formats into a standard format
+ * @param {string} url - The Threads URL in any supported format
+ * @returns {string|null} - Normalized URL or null if invalid
+ */
+function normalizeThreadsUrl(url) {
+  try {
+    const parsedUrl = new URL(url);
+    
+    // Check if it's a valid Threads domain
+    if (!['threads.net', 'www.threads.net'].includes(parsedUrl.hostname)) {
+      return null;
+    }
+    
+    // Split the pathname into parts
+    const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+    
+    // Handle different URL formats
+    
+    // 1. Main post: https://www.threads.net/@username/post/123456789
+    // 2. Reply: https://www.threads.net/@username/post/123456789/reply/123456789
+    // 3. Comment: https://www.threads.net/@username/post/123456789/comment/123456789
+    // 4. Intent URL: https://www.threads.net/intent/post?text=...
+    
+    // Handle intent URLs separately (we don't process these for extraction)
+    if (pathParts[0] === 'intent') {
+      return null;
+    }
+    
+    // Check if the URL has the minimum required parts
+    if (pathParts.length < 3) {
+      return null;
+    }
+    
+    const username = pathParts[0];
+    
+    // Check if username starts with @
+    if (!username.startsWith('@')) {
+      return null;
+    }
+    
+    // Check if second part is 'post'
+    if (pathParts[1] !== 'post') {
+      return null;
+    }
+    
+    // Get the post ID
+    const postId = pathParts[2];
+    
+    // For replies and comments, we need to go back to the original post
+    // as that's where the media will be
+    if (pathParts.length > 3 && ['reply', 'comment'].includes(pathParts[3])) {
+      // Main post contains the media, so we get that URL
+      return `https://www.threads.net/${username}/post/${postId}`;
+    }
+    
+    // Standard post URL
+    return `https://www.threads.net/${username}/post/${postId}`;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
  * Validate if the URL is a valid Threads URL
  * @param {string} url - The URL to validate
  * @returns {boolean} - True if the URL is valid
  */
 function isValidThreadsUrl(url) {
-  try {
-    const parsedUrl = new URL(url);
-    return (
-      parsedUrl.hostname === 'www.threads.net' || 
-      parsedUrl.hostname === 'threads.net'
-    ) && parsedUrl.pathname.split('/').length >= 3;
-  } catch (error) {
-    return false;
-  }
+  return normalizeThreadsUrl(url) !== null;
 } 

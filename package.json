@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "jest --config=jest.config.js"
+    "test": "jest --config=jest.config.js",
+    "build": "echo 'Build completed'"
   },
   "keywords": [
     "threads",
