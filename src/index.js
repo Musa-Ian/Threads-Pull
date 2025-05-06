@@ -11,8 +11,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Apply middleware
-app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
+// Configure Helmet with more permissive settings for compatibility
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for better compatibility
+  crossOriginEmbedderPolicy: false, // Allow embedding
+  crossOriginOpenerPolicy: false, // Allow opening in new windows
+  crossOriginResourcePolicy: false // Allow cross-origin resources
+}));
+// Configure CORS to be more permissive for Shortcuts
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'OPTIONS'], // Allow these methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
+  credentials: true // Allow cookies
+}));
 app.use(express.json()); // Parse JSON bodies
 app.use(morgan('dev')); // Request logging
 
@@ -76,4 +88,4 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-module.exports = app; // For testing purposes 
+module.exports = app; // For testing purposes
